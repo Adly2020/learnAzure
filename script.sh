@@ -1,8 +1,10 @@
 #!/bin/bash
 
+
+
 # Variables générales
-resource_group="myResourceGroup"
-location="eastus"
+resource_group=`az group list --query '[0].name' --output tsv`
+location=`az group list --query '[0].location' --output tsv`
 vnet1="VNet1"
 vnet2="VNet2"
 vnet3="VNet3"
