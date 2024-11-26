@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Variables
+location1="EastUS"
+location2="WestUS"
+resourceGroup=`az group list --query '[0].name' --output tsv`
+vnet1="VNet1"
+vnet2="VNet2"
+vnet3="VNet3"
+vm1="VM1"
+vm2="VM2"
+vm3="VM3"
+subnet="Subnet1"
+vnet1Address="10.1.0.0/16"
+vnet2Address="10.1.0.0/16"
+vnet3Address="10.3.0.0/16"
+subnetAddressVnet1="10.1.0.0/24" # subnet1 vnet1
+subnetAddressVnet2="10.2.0.0/24" # subnet1 vnet2
+subnetAddressVnet3="10.3.0.0/24" # subnet1 vnet3
+imagewindows="Win2019Datacenter"
+imagelinux="Ubunto2204"
+adminusername="azureuser"
+adminpassword="Administrator/"
+
+
+echo "=== Début du script : Création des ressources Azure ==="
+
+# Créer un groupe de ressources
+#echo "Création du groupe de ressources : $resourceGroup..."
+#az group create --name $resourceGroup --location $location1
+#echo "Groupe de ressources $resourceGroup créé avec succès."
+
+# Créer les VNets
+echo "Création de $vnet1 dans $location1..."
+az network vnet create --name $vnet1 --resource-group $resourceGroup --location $location1 --address-prefix $vnet1Address --subnet-name $subnet --subnet-prefix $subnetAddressVnet1
+echo "$vnet1 créé avec succès."
+
+echo "Création de $vnet2 dans $location1..."
+az network vnet create --name $vnet2 --resource-group $resourceGroup --location $location1 --address-prefix $vnet2Address --subnet-name $subnet --subnet-prefix $subnetAddressVnet2
+echo "$vnet2 créé avec succès."
+
+echo "Création de $vnet3 dans $location2..."
+az network vnet create --name $vnet3 --resource-group $resourceGroup --location $location2 --address-prefix $vnet3Address --subnet-name $subnet --subnet-prefix $subnetAddressVnet3
+echo "$vnet3 créé avec succès."
+
+# Créer les machines virtuelles
+echo "Création de $vm1 dans $vnet1..."
+az vm create --name $vm1 --resource-group $resourceGroup --location $location1 --vnet-name $vnet1 --subnet $subnet --image $imagewindows --admin-username $adminusername --admin-password $adminpassword
+echo "$vm1 créé avec succès."
+
+echo "Création de $vm2 dans $vnet2..."
+az vm create --name $vm2 --resource-group $resourceGroup --location $location1 --vnet-name $vnet2 --subnet $subnet --image $imagewindows --admin-username $adminusername --admin-password $adminpassword
+echo "$vm2 créé avec succès."
+
+echo "Création de $vm3 dans $vnet3..."
+az vm create --name $vm3 --resource-group $resourceGroup --location $location2 --vnet-name $vnet3 --subnet $subnet --image $imagewindows --admin-username $adminusername --admin-password $adminpassword
+echo "$vm3 créé avec succès."
+
+# Configurer le peering
+echo "Configuration du peering entre $vnet1 et $vnet2..."
+az network vnet peering create --name VNet1-to-VNet2 --resource-group $resourceGroup --vnet-name $vnet1 --remote-vnet $(az network vnet show --resource-group $resourceGroup --name $vnet2 --query id -o tsv) --allow-vnet-access
+az network vnet peering create --name VNet2-to-VNet1 --resource-group $resourceGroup --vnet-name $vnet2 --remote-vnet $(az network vnet show --resource-group $resourceGroup --name $vnet1 --query id -o tsv) --allow-vnet-access
+echo "Peering entre $vnet1 et $vnet2 configuré avec succès."
+
+echo "Configuration du peering entre $vnet2 et $vnet3..."
+az network vnet peering create --name VNet2-to-VNet3 --resource-group $resourceGroup --vnet-name $vnet2 --remote-vnet $(az network vnet show --resource-group $resourceGroup --name $vnet3 --query id -o tsv) --allow-vnet-access
+az network vnet peering create --name VNet3-to-VNet2 --resource-group $resourceGroup --vnet-name $vnet3 --remote-vnet $(az network vnet show --resource-group $resourceGroup --name $vnet2 --query id -o tsv) --allow-vnet-access
+echo "Peering entre $vnet2 et $vnet3 configuré avec succès."
+
+echo "=== Script terminé : Toutes les ressources ont été créées avec succès ==="
